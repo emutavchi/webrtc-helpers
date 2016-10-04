@@ -1,0 +1,13 @@
+Index: git/webrtc/base/sslidentity.h
+===================================================================
+--- git.orig/webrtc/base/sslidentity.h
++++ git/webrtc/base/sslidentity.h
+@@ -128,7 +128,7 @@ enum KeyType {
+   // crbug.com/611698
+   KT_DEFAULT = KT_RSA
+ #else
+-  KT_DEFAULT = KT_ECDSA
++  KT_DEFAULT = KT_RSA
+ #endif
+ };
+ 

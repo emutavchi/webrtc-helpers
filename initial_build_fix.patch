@@ -1,0 +1,492 @@
+Index: source/third_party/libsrtp/libsrtp.gyp
+===================================================================
+--- source.orig/third_party/libsrtp/libsrtp.gyp
++++ source/third_party/libsrtp/libsrtp.gyp
+@@ -188,7 +188,7 @@
+       'conditions': [
+         ['use_openssl==1', {
+           'dependencies': [
+-            '<(DEPTH)/third_party/boringssl/boringssl.gyp:boringssl',
++#            '<(DEPTH)/third_party/boringssl/boringssl.gyp:boringssl',
+           ],
+           'sources!': [
+             'srtp/crypto/cipher/aes_cbc.c',
+@@ -296,7 +296,7 @@
+       'conditions': [
+         ['use_openssl==1', {
+           'dependencies': [
+-            '<(DEPTH)/third_party/boringssl/boringssl.gyp:boringssl',
++#            '<(DEPTH)/third_party/boringssl/boringssl.gyp:boringssl',
+           ],
+         }],
+       ],
+Index: source/webrtc/base/json.h
+===================================================================
+--- source.orig/webrtc/base/json.h
++++ source/webrtc/base/json.h
+@@ -17,7 +17,7 @@
+ #if !defined(WEBRTC_EXTERNAL_JSON)
+ #include "json/json.h"
+ #else
+-#include "third_party/jsoncpp/json.h"
++#include "json/json.h"
+ #endif
+ 
+ namespace rtc {
+Index: source/webrtc/base/opensslstreamadapter.cc
+===================================================================
+--- source.orig/webrtc/base/opensslstreamadapter.cc
++++ source/webrtc/base/opensslstreamadapter.cc
+@@ -19,6 +19,8 @@
+ #include <openssl/tls1.h>
+ #include <openssl/x509v3.h>
+ #ifndef OPENSSL_IS_BORINGSSL
++#include <openssl/ssl.h>
++#define DTLS1_2_VERSION 0xFEFD
+ #include <openssl/dtls1.h>
+ #endif
+ 
+Index: source/webrtc/base/task_queue_libevent.cc
+===================================================================
+--- source.orig/webrtc/base/task_queue_libevent.cc
++++ source/webrtc/base/task_queue_libevent.cc
+@@ -14,7 +14,7 @@
+ #include <string.h>
+ #include <unistd.h>
+ 
+-#include "base/third_party/libevent/event.h"
++#include <event.h>
+ #include "webrtc/base/checks.h"
+ #include "webrtc/base/logging.h"
+ #include "webrtc/base/task_queue_posix.h"
+Index: source/webrtc/media/sctp/sctpdataengine.cc
+===================================================================
+--- source.orig/webrtc/media/sctp/sctpdataengine.cc
++++ source/webrtc/media/sctp/sctpdataengine.cc
+@@ -17,7 +17,8 @@
+ #include <sstream>
+ #include <vector>
+ 
+-#include "usrsctplib/usrsctp.h"
++#include <usrsctp.h>
++
+ #include "webrtc/base/arraysize.h"
+ #include "webrtc/base/copyonwritebuffer.h"
+ #include "webrtc/base/criticalsection.h"
+Index: source/webrtc/modules/audio_coding/neteq/neteq.gypi
+===================================================================
+--- source.orig/webrtc/modules/audio_coding/neteq/neteq.gypi
++++ source/webrtc/modules/audio_coding/neteq/neteq.gypi
+@@ -132,6 +132,14 @@
+         'time_stretch.cc',
+         'time_stretch.h',
+       ],
++      'conditions': [
++        ['include_opus==0', {
++          'sources!': [
++            'audio_classifier.cc',
++            'audio_classifier.h',
++          ],
++        }],
++      ],
+     },
+   ], # targets
+   'conditions': [
+Index: source/webrtc/modules/audio_device/audio_device.gypi
+===================================================================
+--- source.orig/webrtc/modules/audio_device/audio_device.gypi
++++ source/webrtc/modules/audio_device/audio_device.gypi
+@@ -113,6 +113,13 @@
+                 ],
+               },
+             }],
++            ['use_x11==1', {
++              'link_settings': {
++                'libraries': [
++                  '-lX11',
++                ],
++              },
++            }],
+             ['OS=="linux"', {
+               'sources': [
+                 'linux/alsasymboltable_linux.cc',
+@@ -129,7 +136,7 @@
+               ],
+               'link_settings': {
+                 'libraries': [
+-                  '-ldl','-lX11',
++                  '-ldl',
+                 ],
+               },
+               'conditions': [
+Index: source/webrtc/api/api.gyp
+===================================================================
+--- source.orig/webrtc/api/api.gyp
++++ source/webrtc/api/api.gyp
+@@ -117,7 +117,7 @@
+ 
+             ],
+           },
+-          'includes': ['../../build/java.gypi'],
++#          'includes': ['../../build/java.gypi'],
+         }, # libjingle_peerconnection_java
+       ]
+     }],
+Index: source/webrtc/api/api_tests.gyp
+===================================================================
+--- source.orig/webrtc/api/api_tests.gyp
++++ source/webrtc/api/api_tests.gyp
+@@ -147,8 +147,8 @@
+             'never_lint': 1,
+           },
+           'includes': [
+-            '../../build/java_apk.gypi',
+-            '../../build/android/test_runner.gypi',
++#            '../../build/java_apk.gypi',
++#            '../../build/android/test_runner.gypi',
+           ],
+         },
+       ],  # targets
+Index: source/webrtc/base/testutils.h
+===================================================================
+--- source.orig/webrtc/base/testutils.h
++++ source/webrtc/base/testutils.h
+@@ -14,6 +14,8 @@
+ // Utilities for testing rtc infrastructure in unittests
+ 
+ #if defined(WEBRTC_LINUX) && !defined(WEBRTC_ANDROID)
++
++#if defined(USE_X11)
+ #include <X11/Xlib.h>
+ #include <X11/extensions/Xrandr.h>
+ 
+@@ -21,6 +23,7 @@
+ #undef None
+ #undef Bool
+ #endif
++#endif
+ 
+ #include <algorithm>
+ #include <map>
+@@ -598,7 +601,7 @@ inline AssertionResult CmpHelperFileEq(c
+     return; \
+   } \
+ 
+-#if defined(WEBRTC_LINUX) && !defined(WEBRTC_ANDROID)
++#if defined(WEBRTC_LINUX) && !defined(WEBRTC_ANDROID) && defined(USE_X11)
+ struct XDisplay {
+   XDisplay() : display_(XOpenDisplay(NULL)) { }
+   ~XDisplay() { if (display_) XCloseDisplay(display_); }
+@@ -612,7 +615,7 @@ struct XDisplay {
+ // Returns true if screencasting is available. When false, anything that uses
+ // screencasting features may fail.
+ inline bool IsScreencastingAvailable() {
+-#if defined(WEBRTC_LINUX) && !defined(WEBRTC_ANDROID)
++#if defined(WEBRTC_LINUX) && !defined(WEBRTC_ANDROID) && defined(USE_X11)
+   XDisplay display;
+   if (!display.IsValid()) {
+     LOG(LS_WARNING) << "No X Display available.";
+Index: source/webrtc/test/test.gyp
+===================================================================
+--- source.orig/webrtc/test/test.gyp
++++ source/webrtc/test/test.gyp
+@@ -328,7 +328,16 @@
+        'win/d3d_renderer.h',
+      ],
+      'conditions': [
+-       ['OS=="linux"', {
++       ['OS=="linux" and use_x11==0', {
++         'sources!': [
++           'gl/gl_renderer.cc',
++           'gl/gl_renderer.h',
++           'linux/glx_renderer.cc',
++           'linux/glx_renderer.h',
++           'linux/video_renderer_linux.cc',
++         ],
++       }],
++       ['OS=="linux" and use_x11==1', {
+          'sources!': [
+            'null_platform_renderer.cc',
+          ],
+@@ -374,7 +383,7 @@
+      ],
+      'direct_dependent_settings': {
+        'conditions': [
+-         ['OS=="linux"', {
++         ['OS=="linux" and use_x11==1', {
+            'libraries': [
+              '-lXext',
+              '-lX11',
+Index: source/webrtc/modules/audio_coding/audio_coding_tests.gypi
+===================================================================
+--- source.orig/webrtc/modules/audio_coding/audio_coding_tests.gypi
++++ source/webrtc/modules/audio_coding/audio_coding_tests.gypi
+@@ -19,7 +19,6 @@
+       'dependencies': [
+         'audio_processing',
+         'isac_fix',
+-        'webrtc_opus',
+         '<(DEPTH)/testing/gtest.gyp:gtest',
+         '<(webrtc_root)/system_wrappers/system_wrappers.gyp:system_wrappers',
+         '<(webrtc_root)/test/test.gyp:test_support_main',
+@@ -31,6 +30,15 @@
+         'codecs/tools/audio_codec_speed_test.cc',
+       ],
+       'conditions': [
++        ['include_opus==1', {
++          'dependencies': [
++            'webrtc_opus',
++          ],
++        }, {
++          'sources!': [
++            'codecs/opus/opus_speed_test.cc',
++          ],
++        }],
+         ['OS=="android"', {
+           'dependencies': [
+             '<(DEPTH)/testing/android/native_test.gyp:native_test_native_code',
+Index: source/webrtc/modules/audio_coding/neteq/neteq_tests.gypi
+===================================================================
+--- source.orig/webrtc/modules/audio_coding/neteq/neteq_tests.gypi
++++ source/webrtc/modules/audio_coding/neteq/neteq_tests.gypi
+@@ -59,6 +59,36 @@
+         },
+       ],
+     }],
++    ['include_opus==1', {
++      'targets': [
++        {
++          'target_name': 'audio_classifier_test',
++          'type': 'executable',
++          'dependencies': [
++            'neteq',
++            'webrtc_opus',
++          ],
++          'sources': [
++            'test/audio_classifier_test.cc',
++          ],
++        },
++        {
++          'target_name': 'neteq_opus_quality_test',
++          'type': 'executable',
++          'dependencies': [
++            '<(DEPTH)/testing/gtest.gyp:gtest',
++            '<(DEPTH)/third_party/gflags/gflags.gyp:gflags',
++            '<(webrtc_root)/test/test.gyp:test_support_main',
++            'neteq',
++            'neteq_test_support',
++            'webrtc_opus',
++          ],
++          'sources': [
++            'test/neteq_opus_quality_test.cc',
++          ],
++        },
++      ],
++    }]
+   ],
+   'targets': [
+     {
+@@ -74,7 +104,6 @@
+         'isac',
+         'neteq_test_tools',  # Test helpers
+         'pcm16b',
+-        'webrtc_opus',
+       ],
+       'defines': [
+         'CODEC_ILBC',
+@@ -91,7 +120,6 @@
+         'CODEC_CNGCODEC32',
+         'CODEC_ATEVENT_DECODE',
+         'CODEC_RED',
+-        'CODEC_OPUS',
+       ],
+       'include_dirs': [
+         'include',
+@@ -105,6 +133,16 @@
+       'msvs_disabled_warnings': [
+         4267,  # size_t to int truncation.
+       ],
++      'conditions': [
++        ['include_opus==1', {
++          'dependencies': [
++            'webrtc_opus',
++          ],
++          'defines': [
++            'CODEC_OPUS',
++          ],
++        }],
++      ],
+     },
+ 
+     {
+@@ -181,18 +219,6 @@
+     },
+ 
+     {
+-      'target_name': 'audio_classifier_test',
+-      'type': 'executable',
+-      'dependencies': [
+-        'neteq',
+-        'webrtc_opus',
+-      ],
+-      'sources': [
+-        'test/audio_classifier_test.cc',
+-      ],
+-    },
+-
+-    {
+       'target_name': 'neteq_test_support',
+       'type': 'static_library',
+       'dependencies': [
+@@ -226,22 +252,6 @@
+       ],
+     },
+ 
+-    {
+-      'target_name': 'neteq_opus_quality_test',
+-      'type': 'executable',
+-      'dependencies': [
+-        '<(DEPTH)/testing/gtest.gyp:gtest',
+-        '<(DEPTH)/third_party/gflags/gflags.gyp:gflags',
+-        '<(webrtc_root)/test/test.gyp:test_support_main',
+-        'neteq',
+-        'neteq_test_support',
+-        'webrtc_opus',
+-      ],
+-      'sources': [
+-        'test/neteq_opus_quality_test.cc',
+-      ],
+-    },
+-
+     {
+       'target_name': 'neteq_isac_quality_test',
+       'type': 'executable',
+Index: source/webrtc/modules/audio_coding/neteq/audio_decoder_unittest.cc
+===================================================================
+--- source.orig/webrtc/modules/audio_coding/neteq/audio_decoder_unittest.cc
++++ source/webrtc/modules/audio_coding/neteq/audio_decoder_unittest.cc
+@@ -444,6 +444,7 @@ class AudioDecoderG722StereoTest : publi
+ class AudioDecoderOpusTest : public AudioDecoderTest {
+  protected:
+   AudioDecoderOpusTest() : AudioDecoderTest() {
++#ifdef WEBRTC_CODEC_OPUS
+     codec_input_rate_hz_ = 48000;
+     frame_size_ = 480;
+     data_length_ = 10 * frame_size_;
+@@ -453,12 +454,14 @@ class AudioDecoderOpusTest : public Audi
+     config.payload_type = payload_type_;
+     config.application = AudioEncoderOpus::kVoip;
+     audio_encoder_.reset(new AudioEncoderOpus(config));
++#endif
+   }
+ };
+ 
+ class AudioDecoderOpusStereoTest : public AudioDecoderOpusTest {
+  protected:
+   AudioDecoderOpusStereoTest() : AudioDecoderOpusTest() {
++#ifdef WEBRTC_CODEC_OPUS
+     channels_ = 2;
+     delete decoder_;
+     decoder_ = new AudioDecoderOpus(2);
+@@ -468,6 +471,7 @@ class AudioDecoderOpusStereoTest : publi
+     config.payload_type = payload_type_;
+     config.application = AudioEncoderOpus::kAudio;
+     audio_encoder_.reset(new AudioEncoderOpus(config));
++#endif
+   }
+ };
+ 
+Index: source/webrtc/modules/audio_coding/test/Tester.cc
+===================================================================
+--- source.orig/webrtc/modules/audio_coding/test/Tester.cc
++++ source/webrtc/modules/audio_coding/test/Tester.cc
+@@ -120,6 +120,7 @@ TEST(AudioCodingModuleTest, TestWebRtcVa
+   Trace::ReturnTrace();
+ }
+ 
++#ifdef WEBRTC_CODEC_OPUS
+ TEST(AudioCodingModuleTest, TestOpusDtx) {
+   Trace::CreateTrace();
+   Trace::SetTraceFile((webrtc::test::OutputPath() +
+@@ -135,6 +136,7 @@ TEST(AudioCodingModuleTest, TestOpus) {
+   webrtc::OpusTest().Perform();
+   Trace::ReturnTrace();
+ }
++#endif
+ 
+ TEST(AudioCodingModuleTest, TestPacketLoss) {
+   Trace::CreateTrace();
+Index: source/webrtc/modules/modules.gyp
+===================================================================
+--- source.orig/webrtc/modules/modules.gyp
++++ source/webrtc/modules/modules.gyp
+@@ -100,6 +100,11 @@
+             'video_coding/codecs/vp8/test/vp8_impl_unittest.cc',
+           ],
+           'conditions': [
++            ['include_opus!=1', {
++              'sources!': [
++                'audio_coding/test/opus_test.cc',
++              ],
++            }],
+             ['OS=="android"', {
+               'dependencies': [
+                 '<(DEPTH)/testing/android/native_test.gyp:native_test_native_code',
+@@ -387,8 +392,17 @@
+             'video_processing/test/denoiser_test.cc',
+             'video_processing/test/video_processing_unittest.cc',
+             'video_processing/test/video_processing_unittest.h',
++            'audio_processing/test/bitexactness_tools.cc',
++            'audio_processing/test/audio_buffer_tools.cc',
+           ],
+           'conditions': [
++            ['include_opus!=1', {
++              'sources!': [
++                'audio_coding/codecs/opus/audio_encoder_opus_unittest.cc',
++                'audio_coding/codecs/opus/opus_unittest.cc',
++                'audio_coding/neteq/audio_classifier_unittest.cc',
++              ],
++            }],
+             ['libvpx_build_vp9==1', {
+               'sources': [
+                 'video_coding/codecs/vp9/screenshare_layers_unittest.cc',
+Index: source/webrtc/modules/video_capture/video_capture.gypi
+===================================================================
+--- source.orig/webrtc/modules/video_capture/video_capture.gypi
++++ source/webrtc/modules/video_capture/video_capture.gypi
+@@ -188,7 +188,7 @@
+                 '-lpthread -lm',
+               ],
+             }],
+-            ['OS=="linux"', {
++            ['OS=="linux" and use_x11==1', {
+               'libraries': [
+                 '-lrt',
+                 '-lXext',
+Index: source/webrtc/base/array_view_unittest.cc
+===================================================================
+--- source.orig/webrtc/base/array_view_unittest.cc
++++ source/webrtc/base/array_view_unittest.cc
+@@ -131,7 +131,7 @@ TEST(ArrayViewTest, TestRtcBuffer) {
+   EXPECT_EQ(10u, y.size());
+   EXPECT_EQ(b.data(), y.data());
+   // ArrayView<char> d = b;  // Compile error, because incompatible types.
+-  const rtc::Buffer cb = "very const";
++  const rtc::Buffer cb("very const");
+   Call<const uint8_t>(cb);
+   // Call<uint8_t>(cb);  // Compile error, because can't drop const.
+   ArrayView<const uint8_t> z = cb;
+Index: source/webrtc/modules/audio_coding/audio_coding.gypi
+===================================================================
+--- source.orig/webrtc/modules/audio_coding/audio_coding.gypi
++++ source/webrtc/modules/audio_coding/audio_coding.gypi
+@@ -161,6 +161,9 @@
+           '../include',
+           '<(webrtc_root)',
+         ],
++        'defines': [
++          '<@(audio_coding_defines)',
++        ],
+       },
+       'conditions': [
+         ['include_opus==1', {
