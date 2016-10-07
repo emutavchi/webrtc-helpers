@@ -9,6 +9,9 @@
         'defines': [
           '_DEBUG',
         ],
+        'cflags': [
+          '-g',
+        ],
       },
       'Release_Base': {
         'abstract': 1,
