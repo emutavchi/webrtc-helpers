@@ -37,14 +37,20 @@ Index: source/webrtc/base/opensslstreamadapter.cc
 ===================================================================
 --- source.orig/webrtc/base/opensslstreamadapter.cc
 +++ source/webrtc/base/opensslstreamadapter.cc
-@@ -19,6 +19,8 @@
+@@ -19,9 +19,14 @@
  #include <openssl/tls1.h>
  #include <openssl/x509v3.h>
  #ifndef OPENSSL_IS_BORINGSSL
 +#include <openssl/ssl.h>
-+#define DTLS1_2_VERSION 0xFEFD
  #include <openssl/dtls1.h>
  #endif
+ 
++#ifndef DTLS1_2_VERSION
++#define DTLS1_2_VERSION 0xFEFD
++#endif
++
+ #include <memory>
+ #include <vector>
  
 Index: source/webrtc/base/task_queue_libevent.cc
 ===================================================================
@@ -454,6 +460,15 @@ Index: source/webrtc/modules/video_capture/video_capture.gypi
 ===================================================================
 --- source.orig/webrtc/modules/video_capture/video_capture.gypi
 +++ source/webrtc/modules/video_capture/video_capture.gypi
+@@ -37,7 +37,7 @@
+       # Default video capture module implementation that only supports external
+       # capture.
+       'target_name': 'video_capture',
+-      'type': 'static_library',
++      'type': 'none',
+       'dependencies': [
+         'video_capture_module',
+       ],
 @@ -188,7 +188,7 @@
                  '-lpthread -lm',
                ],
