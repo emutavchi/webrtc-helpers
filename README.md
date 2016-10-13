@@ -11,7 +11,7 @@ cd ~
 git clone https://github.com/sctplab/usrsctp.git
 cd usrsctp
 git checkout 0.9.3.0
-./bootstrap && ./configure --prefix=/usr
+./bootstrap && ./configure --prefix=/usr --disable-inet --disable-inet6 --disable-debug --disable-warnings-as-errors
 make
 sudo make install
 </pre>
