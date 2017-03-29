@@ -7,5 +7,5 @@ Name: WebRTC.org framework
 Description: Provides Real-Time Communications (RTC) APIs
 Version: 52
 Libs: -L${libdir} -Wl,--start-group %WEBRTC_LIBS% -Wl,--end-group -pthread -ldl -lusrsctp -ljsoncpp
-Cflags: -I${includedir} -std=gnu++11 -DWEBRTC_POSIX -DWEBRTC_LINUX
+Cflags: -I${includedir} -DWEBRTC_POSIX -DWEBRTC_LINUX
 Requires: %WEBRTC_PKG_DEPS%
